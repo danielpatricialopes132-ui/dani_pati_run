@@ -673,6 +673,7 @@ function setupStoryModal() {
   const btnDownload = document.getElementById('btn-download-story');
 
   const inputTemplate = document.getElementById('story-template');
+  const inputRatio = document.getElementById('story-aspect-ratio');
   const inputTitle = document.getElementById('story-title');
   const inputKm = document.getElementById('story-km');
   const inputPace = document.getElementById('story-pace');
@@ -709,7 +710,7 @@ function setupStoryModal() {
   });
 
   // Re-desenha ao alterar qualquer campo
-  [inputTemplate, inputTitle, inputKm, inputPace, inputTime, inputHr].forEach((el) => {
+  [inputTemplate, inputRatio, inputTitle, inputKm, inputPace, inputTime, inputHr].forEach((el) => {
     if (el) el.addEventListener('input', drawStoryCard);
   });
 
@@ -736,8 +737,9 @@ function setupStoryModal() {
   if (btnDownload) {
     btnDownload.addEventListener('click', () => {
       const canvas = document.getElementById('storyCanvas');
+      const ratio = inputRatio ? inputRatio.value : '1:1';
       const link = document.createElement('a');
-      link.download = `dani_pati_story_${Date.now()}.png`;
+      link.download = `dani_pati_card_${ratio === '1:1' ? 'feed_square' : 'story'}_${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     });
@@ -749,8 +751,21 @@ function drawStoryCard() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
+  const ratio = document.getElementById('story-aspect-ratio')?.value || '1:1';
   const width = 1080;
-  const height = 1920;
+  const height = ratio === '1:1' ? 1080 : 1920;
+
+  // Ajusta o tamanho nativo do canvas e o estilo CSS no preview
+  canvas.width = width;
+  canvas.height = height;
+
+  if (ratio === '1:1') {
+    canvas.style.width = '280px';
+    canvas.style.height = '280px';
+  } else {
+    canvas.style.width = '240px';
+    canvas.style.height = '426px';
+  }
 
   const template = document.getElementById('story-template').value;
   const title = document.getElementById('story-title').value || 'Treino Concluído!';
@@ -759,14 +774,13 @@ function drawStoryCard() {
   const time = document.getElementById('story-time').value || '55m 00s';
   const hr = document.getElementById('story-hr').value || '150 bpm';
 
-  // 1. Fundo (Imagem personalizada ou Degradê Escuro Temático)
+  // 1. Fundo (Imagem personalizada ou Degradê)
   if (uploadedBgImage) {
-    // Desenha imagem de fundo ajustada para preencher (cover)
     const hRatio = width / uploadedBgImage.width;
     const vRatio = height / uploadedBgImage.height;
-    const ratio = Math.max(hRatio, vRatio);
-    const centerShiftX = (width - uploadedBgImage.width * ratio) / 2;
-    const centerShiftY = (height - uploadedBgImage.height * ratio) / 2;
+    const imgScale = Math.max(hRatio, vRatio);
+    const centerShiftX = (width - uploadedBgImage.width * imgScale) / 2;
+    const centerShiftY = (height - uploadedBgImage.height * imgScale) / 2;
     ctx.drawImage(
       uploadedBgImage,
       0,
@@ -775,15 +789,13 @@ function drawStoryCard() {
       uploadedBgImage.height,
       centerShiftX,
       centerShiftY,
-      uploadedBgImage.width * ratio,
-      uploadedBgImage.height * ratio
+      uploadedBgImage.width * imgScale,
+      uploadedBgImage.height * imgScale
     );
 
-    // Overlay escuro transparente para legibilidade
-    ctx.fillStyle = 'rgba(7, 9, 14, 0.65)';
+    ctx.fillStyle = 'rgba(7, 9, 14, 0.7)';
     ctx.fillRect(0, 0, width, height);
   } else {
-    // Degradê temático moderno
     const grad = ctx.createLinearGradient(0, 0, width, height);
     if (template === 'daniel') {
       grad.addColorStop(0, '#1a0508');
@@ -803,22 +815,21 @@ function drawStoryCard() {
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Elementos Gráficos Geométricos de Fundo (Glow / Luzes)
+  // 2. Elementos Gráficos Geométricos
   ctx.save();
   ctx.beginPath();
-  ctx.arc(width * 0.85, height * 0.15, 350, 0, Math.PI * 2);
-  ctx.fillStyle = template === 'daniel' ? 'rgba(225, 29, 72, 0.25)' : template === 'patricia' ? 'rgba(2, 132, 199, 0.25)' : 'rgba(245, 158, 11, 0.2)';
-  ctx.filter = 'blur(90px)';
+  ctx.arc(width * 0.85, height * 0.15, 300, 0, Math.PI * 2);
+  ctx.fillStyle =
+    template === 'daniel'
+      ? 'rgba(225, 29, 72, 0.25)'
+      : template === 'patricia'
+      ? 'rgba(2, 132, 199, 0.25)'
+      : 'rgba(245, 158, 11, 0.2)';
+  ctx.filter = 'blur(80px)';
   ctx.fill();
   ctx.restore();
 
-  // 3. Header do Story (Logo & Tag)
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '800 42px -apple-system, sans-serif';
-  ctx.fillText('⚡ DANI & PATI RUN', width / 2, 180);
-
-  // Badge do Atleta / Casal
+  // Badges e Cores
   let badgeTxt = '❤️ CASAL DANI & PATY';
   let badgeColor = '#f59e0b';
   if (template === 'daniel') {
@@ -829,110 +840,202 @@ function drawStoryCard() {
     badgeColor = '#0284c7';
   }
 
-  ctx.font = '700 28px -apple-system, sans-serif';
-  ctx.fillStyle = badgeColor;
-  ctx.fillText(badgeTxt, width / 2, 235);
+  // 3. Renderização Específica para 1:1 (Feed Quadrado) vs 9:16 (Stories)
+  if (ratio === '1:1') {
+    // --- LAYOUT 1:1 QUADRADO ---
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 36px -apple-system, sans-serif';
+    ctx.fillText('⚡ DANI & PATI RUN', width / 2, 80);
 
-  // Linha divisória
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(width * 0.2, 270);
-  ctx.lineTo(width * 0.8, 270);
-  ctx.stroke();
+    ctx.font = '700 22px -apple-system, sans-serif';
+    ctx.fillStyle = badgeColor;
+    ctx.fillText(badgeTxt, width / 2, 120);
 
-  // 4. Card Central Flutuante Glassmorphism
-  const cardX = 90;
-  const cardY = 380;
-  const cardW = width - 180;
-  const cardH = 1140;
-  const cardRadius = 50;
+    const cardX = 60;
+    const cardY = 160;
+    const cardW = width - 120;
+    const cardH = 820;
+    const cardRadius = 36;
 
-  ctx.save();
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 50;
-  ctx.shadowOffsetY = 25;
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 15;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+    ctx.fill();
+    ctx.restore();
 
-  // Retângulo com cantos arredondados
-  ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
-  ctx.fill();
-  ctx.restore();
+    ctx.strokeStyle = badgeColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+    ctx.stroke();
 
-  // Borda brilhante do card
-  ctx.strokeStyle = badgeColor;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
-  ctx.stroke();
+    // Título
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 40px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, width / 2, cardY + 80);
 
-  // 5. Conteúdo Interno do Card Central
-  // Título da Sessão
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '800 52px -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(title, width / 2, cardY + 130);
+    // Destaque KM
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 24px -apple-system, sans-serif';
+    ctx.fillText('DISTÂNCIA TOTAL', width / 2, cardY + 160);
 
-  // Destaque Maior: Quilometragem (KM)
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 32px -apple-system, sans-serif';
-  ctx.fillText('DISTÂNCIA CONCLUÍDA', width / 2, cardY + 280);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 110px -apple-system, sans-serif';
+    ctx.fillText(km, width / 2, cardY + 275);
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 135px -apple-system, sans-serif';
-  ctx.fillText(km, width / 2, cardY + 410);
+    // Grade de Métricas
+    const col1X = cardX + cardW * 0.28;
+    const col2X = cardX + cardW * 0.72;
 
-  // Grade de Métricas (Pace & Tempo)
-  const col1X = cardX + cardW * 0.28;
-  const col2X = cardX + cardW * 0.72;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 22px -apple-system, sans-serif';
+    ctx.fillText('PACE MÉDIO', col1X, cardY + 380);
+    ctx.fillStyle = badgeColor;
+    ctx.font = '900 52px -apple-system, sans-serif';
+    ctx.fillText(pace, col1X, cardY + 445);
 
-  // Box Pace
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 28px -apple-system, sans-serif';
-  ctx.fillText('PACE MÉDIO', col1X, cardY + 560);
-  ctx.fillStyle = badgeColor;
-  ctx.font = '900 64px -apple-system, sans-serif';
-  ctx.fillText(pace, col1X, cardY + 640);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 22px -apple-system, sans-serif';
+    ctx.fillText('TEMPO TOTAL', col2X, cardY + 380);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 52px -apple-system, sans-serif';
+    ctx.fillText(time, col2X, cardY + 445);
 
-  // Box Tempo
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 28px -apple-system, sans-serif';
-  ctx.fillText('TEMPO TOTAL', col2X, cardY + 560);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 64px -apple-system, sans-serif';
-  ctx.fillText(time, col2X, cardY + 640);
+    // Linha divisória
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 50, cardY + 520);
+    ctx.lineTo(cardX + cardW - 50, cardY + 520);
+    ctx.stroke();
 
-  // Linha separadora interna
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cardX + 60, cardY + 730);
-  ctx.lineTo(cardX + cardW - 60, cardY + 730);
-  ctx.stroke();
+    // FC / Load
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 22px -apple-system, sans-serif';
+    ctx.fillText('INTENSIDADE & ESFORÇO', width / 2, cardY + 580);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 38px -apple-system, sans-serif';
+    ctx.fillText(hr, width / 2, cardY + 635);
 
-  // Frequência Cardíaca e Carga Interna
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 28px -apple-system, sans-serif';
-  ctx.fillText('INTENSIDADE & ESFORÇO', width / 2, cardY + 800);
+    // Frase
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'italic 500 24px -apple-system, sans-serif';
+    const quote =
+      template === 'couple'
+        ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
+        : template === 'daniel'
+        ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
+        : '"Determinação e foco até a linha de chegada! 🔵⚪"';
+    ctx.fillText(quote, width / 2, cardY + 735);
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '800 48px -apple-system, sans-serif';
-  ctx.fillText(hr, width / 2, cardY + 870);
+    // Rodapé
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = '600 22px -apple-system, sans-serif';
+    ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 35);
+  } else {
+    // --- LAYOUT 9:16 STORIES ---
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 42px -apple-system, sans-serif';
+    ctx.fillText('⚡ DANI & PATI RUN', width / 2, 180);
 
-  // Frase Motivacional de Casal
-  ctx.fillStyle = '#cbd5e1';
-  ctx.font = 'italic 500 32px -apple-system, sans-serif';
-  const quote = template === 'couple'
-    ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
-    : template === 'daniel'
-    ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
-    : '"Determinação e foco até a linha de chegada! 🔵⚪"';
-  ctx.fillText(quote, width / 2, cardY + 1020);
+    ctx.font = '700 28px -apple-system, sans-serif';
+    ctx.fillStyle = badgeColor;
+    ctx.fillText(badgeTxt, width / 2, 235);
 
-  // 6. Rodapé do Story
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  ctx.font = '600 30px -apple-system, sans-serif';
-  ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 120);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.2, 270);
+    ctx.lineTo(width * 0.8, 270);
+    ctx.stroke();
+
+    const cardX = 90;
+    const cardY = 380;
+    const cardW = width - 180;
+    const cardH = 1140;
+    const cardRadius = 50;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 50;
+    ctx.shadowOffsetY = 25;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = badgeColor;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 52px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, width / 2, cardY + 130);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 32px -apple-system, sans-serif';
+    ctx.fillText('DISTÂNCIA CONCLUÍDA', width / 2, cardY + 280);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 135px -apple-system, sans-serif';
+    ctx.fillText(km, width / 2, cardY + 410);
+
+    const col1X = cardX + cardW * 0.28;
+    const col2X = cardX + cardW * 0.72;
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 28px -apple-system, sans-serif';
+    ctx.fillText('PACE MÉDIO', col1X, cardY + 560);
+    ctx.fillStyle = badgeColor;
+    ctx.font = '900 64px -apple-system, sans-serif';
+    ctx.fillText(pace, col1X, cardY + 640);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 28px -apple-system, sans-serif';
+    ctx.fillText('TEMPO TOTAL', col2X, cardY + 560);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 64px -apple-system, sans-serif';
+    ctx.fillText(time, col2X, cardY + 640);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 60, cardY + 730);
+    ctx.lineTo(cardX + cardW - 60, cardY + 730);
+    ctx.stroke();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 28px -apple-system, sans-serif';
+    ctx.fillText('INTENSIDADE & ESFORÇO', width / 2, cardY + 800);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 48px -apple-system, sans-serif';
+    ctx.fillText(hr, width / 2, cardY + 870);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'italic 500 32px -apple-system, sans-serif';
+    const quote =
+      template === 'couple'
+        ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
+        : template === 'daniel'
+        ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
+        : '"Determinação e foco até a linha de chegada! 🔵⚪"';
+    ctx.fillText(quote, width / 2, cardY + 1020);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '600 30px -apple-system, sans-serif';
+    ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 120);
+  }
 }

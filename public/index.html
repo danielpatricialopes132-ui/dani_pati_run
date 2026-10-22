@@ -259,13 +259,22 @@
       </div>
 
       <div class="modal-body">
-        <div class="form-group">
-          <label>Modelo do Story:</label>
-          <select id="story-template" class="input-field">
-            <option value="couple">❤️ Casal: Dani & Pati (Métricas Combinadas)</option>
-            <option value="daniel">🔴⚫ Daniel: Treino / Prova (Flamengo)</option>
-            <option value="patricia">🔵⚪ Patrícia: Treino / Prova (Grêmio)</option>
-          </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>Modelo do Card:</label>
+            <select id="story-template" class="input-field">
+              <option value="couple">❤️ Casal: Dani & Pati</option>
+              <option value="daniel">🔴⚫ Daniel (Flamengo)</option>
+              <option value="patricia">🔵⚪ Patrícia (Grêmio)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Formato da Imagem:</label>
+            <select id="story-aspect-ratio" class="input-field">
+              <option value="1:1">⬛ Feed Quadrado (1:1 - 1080x1080)</option>
+              <option value="9:16">📱 Stories / Reels (9:16 - 1080x1920)</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
