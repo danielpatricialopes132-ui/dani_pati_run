@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Dani & Pati Run | Treinos & Reconciliação</title>
+
+  <!-- PWA & Mobile Metas -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#090d16">
+  
+  <!-- iOS Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DaniPatiRun">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Header Fixo com Seletor de Atleta -->
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-title">DANI & PATI RUN</span>
+      </div>
+
+      <div class="athlete-tabs" id="athlete-tabs">
+        <button class="athlete-tab active" data-id="daniel">Daniel</button>
+        <button class="athlete-tab" data-id="patricia">Patrícia</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Card de Ações Rápidas (Disparar WhatsApp / Sincronizar) -->
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="btn-sync-intervals">
+        <span>🔄</span> Sincronizar Intervals.icu
+      </button>
+      <button class="btn btn-secondary" id="btn-send-whatsapp">
+        <span>📲</span> Enviar WhatsApp
+      </button>
+    </div>
+
+    <!-- Visão Semanal -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>📅</span> Visão da Semana
+        </div>
+        <span class="badge badge-today" id="current-date-badge">Hoje</span>
+      </div>
+      <div class="week-grid" id="week-grid">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+
+    <!-- Treino Prescrito de Hoje -->
+    <section class="card" id="today-workout-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🎯</span> Prescrição de Hoje
+        </div>
+        <span class="badge" id="workout-status-badge">Carregando...</span>
+      </div>
+
+      <div id="workout-content">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+
+    <!-- Atividades Concluídas Hoje -->
+    <section class="card" id="completed-activities-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🏁</span> Realizado Hoje (Intervals.icu)
+        </div>
+      </div>
+      <div id="activities-content">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
