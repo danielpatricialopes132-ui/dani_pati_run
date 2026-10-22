@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAthleteTabs();
   setupNavViews();
   setupActionButtons();
+  setupStoryModal();
   loadAll();
 });
 
@@ -658,4 +659,280 @@ function renderVolumeChart() {
       },
     },
   });
+}
+
+// ==============================================
+// GERADOR DE CARDS PARA INSTAGRAM STORIES (9:16)
+// ==============================================
+let uploadedBgImage = null;
+
+function setupStoryModal() {
+  const modal = document.getElementById('story-modal');
+  const btnOpen = document.getElementById('btn-open-story-modal');
+  const btnClose = document.getElementById('btn-close-story-modal');
+  const btnDownload = document.getElementById('btn-download-story');
+
+  const inputTemplate = document.getElementById('story-template');
+  const inputTitle = document.getElementById('story-title');
+  const inputKm = document.getElementById('story-km');
+  const inputPace = document.getElementById('story-pace');
+  const inputTime = document.getElementById('story-time');
+  const inputHr = document.getElementById('story-hr');
+  const inputBg = document.getElementById('story-bg-file');
+
+  if (btnOpen) {
+    btnOpen.addEventListener('click', () => {
+      // Auto-preenche com a atividade mais recente se houver
+      if (dashboardStatsData && dashboardStatsData.recentActivities && dashboardStatsData.recentActivities.length > 0) {
+        const lastAct = dashboardStatsData.recentActivities[0];
+        inputTitle.value = lastAct.name || 'Treino Concluído! 🏃‍♂️';
+        if (lastAct.distance_meters) inputKm.value = (Number(lastAct.distance_meters) / 1000).toFixed(2) + ' km';
+        if (lastAct.avg_pace_sec_km) inputPace.value = formatPace(Number(lastAct.avg_pace_sec_km));
+        if (lastAct.moving_time_seconds) inputTime.value = formatDuration(Number(lastAct.moving_time_seconds));
+        if (lastAct.avg_hr) inputHr.value = Math.round(Number(lastAct.avg_hr)) + ' bpm' + (lastAct.load ? ' • Load ' + Math.round(Number(lastAct.load)) : '');
+        inputTemplate.value = lastAct.athlete_id || 'couple';
+      }
+      modal.style.display = 'flex';
+      drawStoryCard();
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  }
+
+  // Fecha clicando fora
+  window.addEventListener('click', (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+
+  // Re-desenha ao alterar qualquer campo
+  [inputTemplate, inputTitle, inputKm, inputPace, inputTime, inputHr].forEach((el) => {
+    if (el) el.addEventListener('input', drawStoryCard);
+  });
+
+  // Upload de foto de fundo personalizada
+  if (inputBg) {
+    inputBg.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            uploadedBgImage = img;
+            drawStoryCard();
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Download do Story
+  if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+      const canvas = document.getElementById('storyCanvas');
+      const link = document.createElement('a');
+      link.download = `dani_pati_story_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    });
+  }
+}
+
+function drawStoryCard() {
+  const canvas = document.getElementById('storyCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const width = 1080;
+  const height = 1920;
+
+  const template = document.getElementById('story-template').value;
+  const title = document.getElementById('story-title').value || 'Treino Concluído!';
+  const km = document.getElementById('story-km').value || '10.0 km';
+  const pace = document.getElementById('story-pace').value || '5:30 /km';
+  const time = document.getElementById('story-time').value || '55m 00s';
+  const hr = document.getElementById('story-hr').value || '150 bpm';
+
+  // 1. Fundo (Imagem personalizada ou Degradê Escuro Temático)
+  if (uploadedBgImage) {
+    // Desenha imagem de fundo ajustada para preencher (cover)
+    const hRatio = width / uploadedBgImage.width;
+    const vRatio = height / uploadedBgImage.height;
+    const ratio = Math.max(hRatio, vRatio);
+    const centerShiftX = (width - uploadedBgImage.width * ratio) / 2;
+    const centerShiftY = (height - uploadedBgImage.height * ratio) / 2;
+    ctx.drawImage(
+      uploadedBgImage,
+      0,
+      0,
+      uploadedBgImage.width,
+      uploadedBgImage.height,
+      centerShiftX,
+      centerShiftY,
+      uploadedBgImage.width * ratio,
+      uploadedBgImage.height * ratio
+    );
+
+    // Overlay escuro transparente para legibilidade
+    ctx.fillStyle = 'rgba(7, 9, 14, 0.65)';
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    // Degradê temático moderno
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    if (template === 'daniel') {
+      grad.addColorStop(0, '#1a0508');
+      grad.addColorStop(0.5, '#07090e');
+      grad.addColorStop(1, '#881337');
+    } else if (template === 'patricia') {
+      grad.addColorStop(0, '#041c2c');
+      grad.addColorStop(0.5, '#07090e');
+      grad.addColorStop(1, '#0369a1');
+    } else {
+      // Casal
+      grad.addColorStop(0, '#2e1065');
+      grad.addColorStop(0.5, '#07090e');
+      grad.addColorStop(1, '#be185d');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // 2. Elementos Gráficos Geométricos de Fundo (Glow / Luzes)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(width * 0.85, height * 0.15, 350, 0, Math.PI * 2);
+  ctx.fillStyle = template === 'daniel' ? 'rgba(225, 29, 72, 0.25)' : template === 'patricia' ? 'rgba(2, 132, 199, 0.25)' : 'rgba(245, 158, 11, 0.2)';
+  ctx.filter = 'blur(90px)';
+  ctx.fill();
+  ctx.restore();
+
+  // 3. Header do Story (Logo & Tag)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 42px -apple-system, sans-serif';
+  ctx.fillText('⚡ DANI & PATI RUN', width / 2, 180);
+
+  // Badge do Atleta / Casal
+  let badgeTxt = '❤️ CASAL DANI & PATY';
+  let badgeColor = '#f59e0b';
+  if (template === 'daniel') {
+    badgeTxt = '🔴⚫ DANIEL • MENGÃO';
+    badgeColor = '#e11d48';
+  } else if (template === 'patricia') {
+    badgeTxt = '🔵⚪ PATRÍCIA • TRICOLOR';
+    badgeColor = '#0284c7';
+  }
+
+  ctx.font = '700 28px -apple-system, sans-serif';
+  ctx.fillStyle = badgeColor;
+  ctx.fillText(badgeTxt, width / 2, 235);
+
+  // Linha divisória
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(width * 0.2, 270);
+  ctx.lineTo(width * 0.8, 270);
+  ctx.stroke();
+
+  // 4. Card Central Flutuante Glassmorphism
+  const cardX = 90;
+  const cardY = 380;
+  const cardW = width - 180;
+  const cardH = 1140;
+  const cardRadius = 50;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+  ctx.shadowBlur = 50;
+  ctx.shadowOffsetY = 25;
+
+  // Retângulo com cantos arredondados
+  ctx.beginPath();
+  ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+  ctx.fill();
+  ctx.restore();
+
+  // Borda brilhante do card
+  ctx.strokeStyle = badgeColor;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+  ctx.stroke();
+
+  // 5. Conteúdo Interno do Card Central
+  // Título da Sessão
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 52px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, width / 2, cardY + 130);
+
+  // Destaque Maior: Quilometragem (KM)
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 32px -apple-system, sans-serif';
+  ctx.fillText('DISTÂNCIA CONCLUÍDA', width / 2, cardY + 280);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 135px -apple-system, sans-serif';
+  ctx.fillText(km, width / 2, cardY + 410);
+
+  // Grade de Métricas (Pace & Tempo)
+  const col1X = cardX + cardW * 0.28;
+  const col2X = cardX + cardW * 0.72;
+
+  // Box Pace
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 28px -apple-system, sans-serif';
+  ctx.fillText('PACE MÉDIO', col1X, cardY + 560);
+  ctx.fillStyle = badgeColor;
+  ctx.font = '900 64px -apple-system, sans-serif';
+  ctx.fillText(pace, col1X, cardY + 640);
+
+  // Box Tempo
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 28px -apple-system, sans-serif';
+  ctx.fillText('TEMPO TOTAL', col2X, cardY + 560);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 64px -apple-system, sans-serif';
+  ctx.fillText(time, col2X, cardY + 640);
+
+  // Linha separadora interna
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cardX + 60, cardY + 730);
+  ctx.lineTo(cardX + cardW - 60, cardY + 730);
+  ctx.stroke();
+
+  // Frequência Cardíaca e Carga Interna
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 28px -apple-system, sans-serif';
+  ctx.fillText('INTENSIDADE & ESFORÇO', width / 2, cardY + 800);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 48px -apple-system, sans-serif';
+  ctx.fillText(hr, width / 2, cardY + 870);
+
+  // Frase Motivacional de Casal
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = 'italic 500 32px -apple-system, sans-serif';
+  const quote = template === 'couple'
+    ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
+    : template === 'daniel'
+    ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
+    : '"Determinação e foco até a linha de chegada! 🔵⚪"';
+  ctx.fillText(quote, width / 2, cardY + 1020);
+
+  // 6. Rodapé do Story
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.font = '600 30px -apple-system, sans-serif';
+  ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 120);
 }
