@@ -159,6 +159,14 @@ export function createServer(): express.Express {
         LIMIT 20
       `);
 
+      // Próximas provas de Daniel e Patrícia
+      const racesRes = await pool.query(`
+        SELECT r.*, a.name as athlete_name
+        FROM races r
+        JOIN athletes a ON r.athlete_id = a.id
+        ORDER BY r.race_date ASC
+      `);
+
       res.json({
         daniel: {
           done: danielRes.rows[0],
@@ -168,6 +176,7 @@ export function createServer(): express.Express {
           done: patriciaRes.rows[0],
           planned: patriciaPlannedRes.rows[0],
         },
+        races: racesRes.rows,
         recentActivities: recentActivities.rows,
         upcomingWorkouts: upcomingWorkouts.rows,
       });

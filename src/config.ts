@@ -10,6 +10,10 @@ export interface Config {
     instanceName: string;
     apiKey: string;
   };
+  weather: {
+    apiKey: string;
+    city: string;
+  };
   initialAthletes: {
     id: string;
     name: string;
@@ -36,6 +40,10 @@ export const config: Config = {
     baseUrl: formatBaseUrl(process.env.EVOLUTION_BASE_URL || process.env.EVOLUTION_API_URL),
     instanceName: process.env.EVOLUTION_INSTANCE_NAME || 'ecostone',
     apiKey: process.env.EVOLUTION_API_KEY || '',
+  },
+  weather: {
+    apiKey: process.env.OPENWEATHER_API_KEY || '4066ca63e2850558ed7b5e3377357a91',
+    city: process.env.WEATHER_CITY || 'Sao Paulo,BR',
   },
   initialAthletes: [
     {

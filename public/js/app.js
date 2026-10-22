@@ -308,9 +308,127 @@ async function loadDashboardStats() {
 
     renderKpisToday();
     renderCoupleMeter();
+    renderRacesCountdown();
+    renderGamification();
   } catch (err) {
     console.error('Erro ao carregar estatísticas:', err);
   }
+}
+
+// Renderizar Countdown das Provas Alvo
+function renderRacesCountdown() {
+  const container = document.getElementById('races-countdown-content');
+  if (!container || !dashboardStatsData || !dashboardStatsData.races) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const filteredRaces = currentAthleteId === 'casal'
+    ? dashboardStatsData.races
+    : dashboardStatsData.races.filter((r) => r.athlete_id === currentAthleteId);
+
+  if (filteredRaces.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 10px;">Nenhuma prova cadastrada para este atleta.</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+      ${filteredRaces.map((r) => {
+        const raceDate = new Date(r.race_date + 'T00:00:00');
+        const diffTime = raceDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const isPast = diffDays < 0;
+
+        const athleteColor = r.athlete_id === 'daniel' ? '#e11d48' : '#0284c7';
+        const athleteIcon = r.athlete_id === 'daniel' ? '🔴' : '🔵';
+
+        let badgeStatus = '';
+        if (diffDays === 0) {
+          badgeStatus = '<span style="color: #f59e0b; font-weight: 800;">🔥 É HOJE!</span>';
+        } else if (diffDays > 0) {
+          badgeStatus = `<span style="font-size: 18px; font-weight: 800; color: ${athleteColor};">Faltam ${diffDays} dias</span>`;
+        } else {
+          badgeStatus = '<span style="color: #10b981; font-weight: 700;">✓ Concluída</span>';
+        }
+
+        return `
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+              <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: ${athleteColor};">
+                ${athleteIcon} ${r.athlete_name || (r.athlete_id === 'daniel' ? 'Daniel' : 'Patrícia')} • ${r.priority || 'P1'}
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted);">${r.race_date}</span>
+            </div>
+            <div style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px;">${r.name}</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px;">
+              <div style="font-size: 13px; color: var(--text-muted);">Alvo: <strong>${r.distance_km} km</strong> ${r.target_time ? `(${r.target_time})` : ''}</div>
+              <div>${badgeStatus}</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// Renderizar Gamificação & Duelo Casal (Fla vs Grêmio)
+function renderGamification() {
+  const container = document.getElementById('gamification-content');
+  if (!container || !dashboardStatsData) return;
+
+  const dDone = dashboardStatsData.daniel.done;
+  const pDone = dashboardStatsData.patricia.done;
+
+  const dKm = parseFloat(dDone.total_km_done || 0);
+  const pKm = parseFloat(pDone.total_km_done || 0);
+  const totalCasalKm = (dKm + pKm).toFixed(1);
+
+  // Meta do Casal de 1.500 km acumulados no ano
+  const casalMeta = 1500;
+  const metaPct = Math.min(100, ((parseFloat(totalCasalKm) / casalMeta) * 100)).toFixed(1);
+
+  // Faixa da semana
+  const badgeChamp = document.getElementById('badge-weekly-champion');
+  let championText = '';
+  if (dKm > pKm) {
+    championText = '🔴 Líder: Mengão (Daniel)';
+    if (badgeChamp) badgeChamp.textContent = 'Líder: Daniel (Fla)';
+  } else if (pKm > dKm) {
+    championText = '🔵 Líder: Tricolor (Patrícia)';
+    if (badgeChamp) badgeChamp.textContent = 'Líder: Patrícia (Grêmio)';
+  } else {
+    championText = '🤝 Empate Perfeito no Casal!';
+    if (badgeChamp) badgeChamp.textContent = 'Empate no Duelo';
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.03); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Status do Duelo da Semana</div>
+          <div style="font-size: 15px; font-weight: 800; color: #fff; margin-top: 2px;">${championText}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; color: var(--text-muted);">Placar KM</div>
+          <div style="font-size: 15px; font-weight: 800;">🔴 ${dKm.toFixed(1)}k <span style="color: var(--text-muted); font-weight: 400;">vs</span> 🔵 ${pKm.toFixed(1)}k</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 14px; padding: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+          <span style="font-size: 13px; font-weight: 700; color: #fbbf24;">🌟 Meta Casal: 1.500 km em 2026/2027</span>
+          <span style="font-size: 13px; font-weight: 800; color: #fff;">${totalCasalKm} / 1500 km (${metaPct}%)</span>
+        </div>
+        <div style="background: rgba(0, 0, 0, 0.3); border-radius: 9999px; height: 10px; width: 100%; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #e11d48, #f59e0b, #0284c7); height: 100%; width: ${metaPct}%; transition: width 0.6s ease;"></div>
+        </div>
+        <div style="font-size: 11px; color: #cbd5e1; margin-top: 8px;">
+          🏃‍♂️ Daniel e Patrícia correndo juntos rumo aos grandes objetivos!
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // KPIs no topo

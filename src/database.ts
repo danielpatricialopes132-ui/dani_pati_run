@@ -154,4 +154,25 @@ export async function initDatabase(): Promise<void> {
       );
     }
   }
+
+  // Sementes das provas-alvo da Patrícia e do Daniel
+  const defaultRaces = [
+    { id: 'race_patricia_venus_2026', athlete_id: 'patricia', name: 'Meia Maratona Vênus 21K', race_date: '2026-11-29', distance_km: 21.1, target_time: '02:05:00', priority: 'P1' },
+    { id: 'race_patricia_olgakos_2026', athlete_id: 'patricia', name: 'Corrida Olga Kos 9K', race_date: '2026-12-06', distance_km: 9.0, target_time: '00:52:00', priority: 'P2' },
+    { id: 'race_patricia_spcity_2027', athlete_id: 'patricia', name: 'SP City Half Marathon 21K', race_date: '2027-07-25', distance_km: 21.1, target_time: '01:59:00', priority: 'P1' },
+    { id: 'race_daniel_spcity_2027', athlete_id: 'daniel', name: 'SP City Marathon 42K', race_date: '2027-07-25', distance_km: 42.2, target_time: '03:45:00', priority: 'P1' }
+  ];
+
+  for (const r of defaultRaces) {
+    await pool.query(`
+      INSERT INTO races (id, athlete_id, name, race_date, distance_km, target_time, priority)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT(id) DO UPDATE SET
+        name = EXCLUDED.name,
+        race_date = EXCLUDED.race_date,
+        distance_km = EXCLUDED.distance_km,
+        target_time = EXCLUDED.target_time,
+        priority = EXCLUDED.priority
+    `, [r.id, r.athlete_id, r.name, r.race_date, r.distance_km, r.target_time, r.priority]);
+  }
 }
