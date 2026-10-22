@@ -674,6 +674,7 @@ function setupStoryModal() {
 
   const inputTemplate = document.getElementById('story-template');
   const inputRatio = document.getElementById('story-aspect-ratio');
+  const inputQuote = document.getElementById('story-love-quote');
   const inputTitle = document.getElementById('story-title');
   const inputKm = document.getElementById('story-km');
   const inputPace = document.getElementById('story-pace');
@@ -691,7 +692,6 @@ function setupStoryModal() {
         if (lastAct.avg_pace_sec_km) inputPace.value = formatPace(Number(lastAct.avg_pace_sec_km));
         if (lastAct.moving_time_seconds) inputTime.value = formatDuration(Number(lastAct.moving_time_seconds));
         if (lastAct.avg_hr) inputHr.value = Math.round(Number(lastAct.avg_hr)) + ' bpm' + (lastAct.load ? ' • Load ' + Math.round(Number(lastAct.load)) : '');
-        inputTemplate.value = lastAct.athlete_id || 'couple';
       }
       modal.style.display = 'flex';
       drawStoryCard();
@@ -710,7 +710,7 @@ function setupStoryModal() {
   });
 
   // Re-desenha ao alterar qualquer campo
-  [inputTemplate, inputRatio, inputTitle, inputKm, inputPace, inputTime, inputHr].forEach((el) => {
+  [inputTemplate, inputRatio, inputQuote, inputTitle, inputKm, inputPace, inputTime, inputHr].forEach((el) => {
     if (el) el.addEventListener('input', drawStoryCard);
   });
 
@@ -755,7 +755,6 @@ function drawStoryCard() {
   const width = 1080;
   const height = ratio === '1:1' ? 1080 : 1920;
 
-  // Ajusta o tamanho nativo do canvas e o estilo CSS no preview
   canvas.width = width;
   canvas.height = height;
 
@@ -767,14 +766,62 @@ function drawStoryCard() {
     canvas.style.height = '426px';
   }
 
-  const template = document.getElementById('story-template').value;
-  const title = document.getElementById('story-title').value || 'Treino Concluído!';
-  const km = document.getElementById('story-km').value || '10.0 km';
-  const pace = document.getElementById('story-pace').value || '5:30 /km';
-  const time = document.getElementById('story-time').value || '55m 00s';
-  const hr = document.getElementById('story-hr').value || '150 bpm';
+  const template = document.getElementById('story-template')?.value || 'love_sunset';
+  const quoteSelect = document.getElementById('story-love-quote')?.value || 'couple_1';
+  const title = document.getElementById('story-title')?.value || 'Treino Concluído!';
+  const km = document.getElementById('story-km')?.value || '10.0 km';
+  const pace = document.getElementById('story-pace')?.value || '5:30 /km';
+  const time = document.getElementById('story-time')?.value || '55m 00s';
+  const hr = document.getElementById('story-hr')?.value || '150 bpm';
 
-  // 1. Fundo (Imagem personalizada ou Degradê)
+  // Frase selecionada
+  let quote = '"Construindo nossa melhor versão lado a lado a cada KM! 👩‍❤️‍👨"';
+  if (quoteSelect === 'couple_2') quote = '"Correndo juntos pelo mesmo destino: nossa felicidade! ❤️"';
+  else if (quoteSelect === 'couple_3') quote = '"Você é o meu melhor ritmo e a minha melhor companhia! 💖"';
+  else if (quoteSelect === 'couple_4') quote = '"O amor é a nossa maior linha de chegada! 🏅✨"';
+  else if (quoteSelect === 'couple_5') quote = '"Parceria nos treinos, na vida e em todos os quilômetros! 💫"';
+
+  // Configurações de cores e gradientes de acordo com o tema
+  let badgeTxt = '❤️ DANI & PATÍCIA • LOVE';
+  let badgeColor = '#f43f5e';
+  let cardBorderColor = '#fb7185';
+  let glowColor = 'rgba(244, 63, 94, 0.35)';
+
+  if (template === 'love_sunset') {
+    badgeTxt = '🌅 SUNSET LOVE • DANI & PATY';
+    badgeColor = '#fb923c';
+    cardBorderColor = '#f97316';
+    glowColor = 'rgba(249, 115, 22, 0.35)';
+  } else if (template === 'love_golden') {
+    badgeTxt = '✨ GOLDEN ROMANCE • NOSSA HISTÓRIA';
+    badgeColor = '#fbbf24';
+    cardBorderColor = '#f59e0b';
+    glowColor = 'rgba(245, 158, 11, 0.35)';
+  } else if (template === 'love_rose') {
+    badgeTxt = '🌸 DELICATE LOVE • DANI & PATI';
+    badgeColor = '#f472b6';
+    cardBorderColor = '#ec4899';
+    glowColor = 'rgba(236, 72, 153, 0.35)';
+  } else if (template === 'love_neon') {
+    badgeTxt = '💖 NEON LOVE • JUNTOS SEMPRE';
+    badgeColor = '#e11d48';
+    cardBorderColor = '#ff0055';
+    glowColor = 'rgba(255, 0, 85, 0.45)';
+  } else if (template === 'daniel') {
+    badgeTxt = '🔴⚫ DANIEL • MENGÃO';
+    badgeColor = '#e11d48';
+    cardBorderColor = '#991b1b';
+    glowColor = 'rgba(225, 29, 72, 0.35)';
+    quote = '"Raça, amor e paixão nos treinos diários! 🔴⚫"';
+  } else if (template === 'patricia') {
+    badgeTxt = '🔵⚪ PATRÍCIA • TRICOLOR';
+    badgeColor = '#38bdf8';
+    cardBorderColor = '#0284c7';
+    glowColor = 'rgba(2, 132, 199, 0.35)';
+    quote = '"Determinação e foco até a linha de chegada! 🔵⚪"';
+  }
+
+  // 1. Fundo (Imagem personalizada ou Degradê Temático)
   if (uploadedBgImage) {
     const hRatio = width / uploadedBgImage.width;
     const vRatio = height / uploadedBgImage.height;
@@ -793,11 +840,28 @@ function drawStoryCard() {
       uploadedBgImage.height * imgScale
     );
 
-    ctx.fillStyle = 'rgba(7, 9, 14, 0.7)';
+    // Overlay escuro com toque de cor do tema
+    ctx.fillStyle = 'rgba(7, 9, 14, 0.68)';
     ctx.fillRect(0, 0, width, height);
   } else {
     const grad = ctx.createLinearGradient(0, 0, width, height);
-    if (template === 'daniel') {
+    if (template === 'love_sunset') {
+      grad.addColorStop(0, '#431407');
+      grad.addColorStop(0.5, '#1e1b4b');
+      grad.addColorStop(1, '#9a3412');
+    } else if (template === 'love_golden') {
+      grad.addColorStop(0, '#451a03');
+      grad.addColorStop(0.5, '#090d16');
+      grad.addColorStop(1, '#78350f');
+    } else if (template === 'love_rose') {
+      grad.addColorStop(0, '#500724');
+      grad.addColorStop(0.5, '#090d16');
+      grad.addColorStop(1, '#831843');
+    } else if (template === 'love_neon') {
+      grad.addColorStop(0, '#310022');
+      grad.addColorStop(0.5, '#040508');
+      grad.addColorStop(1, '#4c0519');
+    } else if (template === 'daniel') {
       grad.addColorStop(0, '#1a0508');
       grad.addColorStop(0.5, '#07090e');
       grad.addColorStop(1, '#881337');
@@ -806,7 +870,7 @@ function drawStoryCard() {
       grad.addColorStop(0.5, '#07090e');
       grad.addColorStop(1, '#0369a1');
     } else {
-      // Casal
+      // Casal Clássico
       grad.addColorStop(0, '#2e1065');
       grad.addColorStop(0.5, '#07090e');
       grad.addColorStop(1, '#be185d');
@@ -815,30 +879,22 @@ function drawStoryCard() {
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Elementos Gráficos Geométricos
+  // 2. Elementos Gráficos Românticos de Fundo (Glow / Efeito de Coração)
   ctx.save();
   ctx.beginPath();
-  ctx.arc(width * 0.85, height * 0.15, 300, 0, Math.PI * 2);
-  ctx.fillStyle =
-    template === 'daniel'
-      ? 'rgba(225, 29, 72, 0.25)'
-      : template === 'patricia'
-      ? 'rgba(2, 132, 199, 0.25)'
-      : 'rgba(245, 158, 11, 0.2)';
-  ctx.filter = 'blur(80px)';
+  ctx.arc(width * 0.85, height * 0.15, 320, 0, Math.PI * 2);
+  ctx.fillStyle = glowColor;
+  ctx.filter = 'blur(85px)';
   ctx.fill();
   ctx.restore();
 
-  // Badges e Cores
-  let badgeTxt = '❤️ CASAL DANI & PATY';
-  let badgeColor = '#f59e0b';
-  if (template === 'daniel') {
-    badgeTxt = '🔴⚫ DANIEL • MENGÃO';
-    badgeColor = '#e11d48';
-  } else if (template === 'patricia') {
-    badgeTxt = '🔵⚪ PATRÍCIA • TRICOLOR';
-    badgeColor = '#0284c7';
-  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(width * 0.15, height * 0.85, 320, 0, Math.PI * 2);
+  ctx.fillStyle = glowColor;
+  ctx.filter = 'blur(85px)';
+  ctx.fill();
+  ctx.restore();
 
   // 3. Renderização Específica para 1:1 (Feed Quadrado) vs 9:16 (Stories)
   if (ratio === '1:1') {
@@ -846,29 +902,29 @@ function drawStoryCard() {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
     ctx.font = '800 36px -apple-system, sans-serif';
-    ctx.fillText('⚡ DANI & PATI RUN', width / 2, 80);
+    ctx.fillText('⚡ DANI & PATI RUN', width / 2, 75);
 
     ctx.font = '700 22px -apple-system, sans-serif';
     ctx.fillStyle = badgeColor;
-    ctx.fillText(badgeTxt, width / 2, 120);
+    ctx.fillText(badgeTxt, width / 2, 115);
 
     const cardX = 60;
-    const cardY = 160;
+    const cardY = 155;
     const cardW = width - 120;
-    const cardH = 820;
+    const cardH = 830;
     const cardRadius = 36;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-    ctx.shadowBlur = 40;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+    ctx.shadowBlur = 45;
     ctx.shadowOffsetY = 15;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
     ctx.fill();
     ctx.restore();
 
-    ctx.strokeStyle = badgeColor;
+    ctx.strokeStyle = cardBorderColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
@@ -876,18 +932,18 @@ function drawStoryCard() {
 
     // Título
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 40px -apple-system, sans-serif';
+    ctx.font = '800 38px -apple-system, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(title, width / 2, cardY + 80);
+    ctx.fillText(title, width / 2, cardY + 75);
 
     // Destaque KM
     ctx.fillStyle = '#94a3b8';
     ctx.font = '700 24px -apple-system, sans-serif';
-    ctx.fillText('DISTÂNCIA TOTAL', width / 2, cardY + 160);
+    ctx.fillText('DISTÂNCIA CONCLUÍDA', width / 2, cardY + 155);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 110px -apple-system, sans-serif';
-    ctx.fillText(km, width / 2, cardY + 275);
+    ctx.fillText(km, width / 2, cardY + 270);
 
     // Grade de Métricas
     const col1X = cardX + cardW * 0.28;
@@ -923,22 +979,16 @@ function drawStoryCard() {
     ctx.font = '800 38px -apple-system, sans-serif';
     ctx.fillText(hr, width / 2, cardY + 635);
 
-    // Frase
+    // Frase Romântica
     ctx.fillStyle = '#cbd5e1';
     ctx.font = 'italic 500 24px -apple-system, sans-serif';
-    const quote =
-      template === 'couple'
-        ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
-        : template === 'daniel'
-        ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
-        : '"Determinação e foco até a linha de chegada! 🔵⚪"';
-    ctx.fillText(quote, width / 2, cardY + 735);
+    ctx.fillText(quote, width / 2, cardY + 740);
 
     // Rodapé
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.font = '600 22px -apple-system, sans-serif';
-    ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 35);
+    ctx.fillText('@dani_pati_run • Nosso Ritmo, Nosso Amor ❤️', width / 2, height - 35);
   } else {
     // --- LAYOUT 9:16 STORIES ---
     ctx.textAlign = 'center';
@@ -964,23 +1014,23 @@ function drawStoryCard() {
     const cardRadius = 50;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 50;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = 55;
     ctx.shadowOffsetY = 25;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
     ctx.fill();
     ctx.restore();
 
-    ctx.strokeStyle = badgeColor;
+    ctx.strokeStyle = cardBorderColor;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 52px -apple-system, sans-serif';
+    ctx.font = '800 50px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(title, width / 2, cardY + 130);
 
@@ -1024,18 +1074,12 @@ function drawStoryCard() {
     ctx.fillText(hr, width / 2, cardY + 870);
 
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = 'italic 500 32px -apple-system, sans-serif';
-    const quote =
-      template === 'couple'
-        ? '"Construindo nossa melhor versão lado a lado a cada KM!"'
-        : template === 'daniel'
-        ? '"Raça, amor e paixão nos treinos diários! 🔴⚫"'
-        : '"Determinação e foco até a linha de chegada! 🔵⚪"';
+    ctx.font = 'italic 500 30px -apple-system, sans-serif';
     ctx.fillText(quote, width / 2, cardY + 1020);
 
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.font = '600 30px -apple-system, sans-serif';
-    ctx.fillText('@dani_pati_run • Powered by Intervals.icu', width / 2, height - 120);
+    ctx.fillText('@dani_pati_run • Nosso Ritmo, Nosso Amor ❤️', width / 2, height - 120);
   }
 }

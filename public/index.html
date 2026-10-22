@@ -261,11 +261,19 @@
       <div class="modal-body">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group">
-            <label>Modelo do Card:</label>
+            <label>Tema Visual:</label>
             <select id="story-template" class="input-field">
-              <option value="couple">❤️ Casal: Dani & Pati</option>
-              <option value="daniel">🔴⚫ Daniel (Flamengo)</option>
-              <option value="patricia">🔵⚪ Patrícia (Grêmio)</option>
+              <optgroup label="❤️ Temas Românticos / Love">
+                <option value="love_sunset">🌅 Pôr do Sol & Amor (Sunset Love)</option>
+                <option value="love_golden">✨ Dourado & Paixão (Golden Romance)</option>
+                <option value="love_rose">🌸 Rose Gold Romântico (Delicate Love)</option>
+                <option value="love_neon">💖 Neon Love Glow (Coração Vibrante)</option>
+              </optgroup>
+              <optgroup label="🏆 Temas dos Clubes & Casal">
+                <option value="couple">❤️ Dani & Pati Oficial (Harmonia)</option>
+                <option value="daniel">🔴⚫ Daniel (Mengão Raça)</option>
+                <option value="patricia">🔵⚪ Patrícia (Grêmio Tricolor)</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group">
@@ -275,6 +283,18 @@
               <option value="9:16">📱 Stories / Reels (9:16 - 1080x1920)</option>
             </select>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Badge / Mensagem de Amor:</label>
+          <select id="story-love-quote" class="input-field">
+            <option value="couple_1">"Construindo nossa melhor versão lado a lado a cada KM! 👩‍❤️‍👨"</option>
+            <option value="couple_2">"Correndo juntos pelo mesmo destino: nossa felicidade! ❤️🏃‍♀️🏃‍♂️"</option>
+            <option value="couple_3">"Você é o meu melhor ritmo e a minha melhor companhia! 💖"</option>
+            <option value="couple_4">"O amor é a nossa maior linha de chegada! 🏅✨"</option>
+            <option value="couple_5">"Parceria nos treinos, na vida e em todos os quilômetros! 💫"</option>
+            <option value="custom">✍️ Digitar minha própria frase personalizada...</option>
+          </select>
         </div>
 
         <div class="form-group">
