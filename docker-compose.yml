@@ -1,0 +1,18 @@
+services:
+  workout-controller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workout-controller
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PATH=/app/data/workouts.db
+    volumes:
+      - workout-data:/app/data
+
+volumes:
+  workout-data:
