@@ -1,9 +1,5 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { Pool } from 'pg';
 import { config } from './config';
-
-let dbInstance: Database.Database | null = null;
 
 export interface AthleteRecord {
   id: string;
@@ -54,31 +50,33 @@ export interface CompletedActivityRecord {
   load: number | null;
 }
 
-export function getDatabase(): Database.Database {
-  if (dbInstance) {
-    return dbInstance;
+let poolInstance: Pool | null = null;
+
+export function getDatabasePool(): Pool {
+  if (poolInstance) {
+    return poolInstance;
   }
 
-  const dbPath = path.isAbsolute(config.databasePath)
-    ? config.databasePath
-    : path.resolve(process.cwd(), config.databasePath);
+  // Remove sslmode=require da query string se presente para evitar conflito com rejectUnauthorized
+  const cleanUrl = config.databaseUrl.replace(/(\?|&)sslmode=[^&]+/g, '');
 
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
+  poolInstance = new Pool({
+    connectionString: cleanUrl,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
 
-  dbInstance = new Database(dbPath);
-  dbInstance.pragma('foreign_keys = ON');
-
-  initSchema(dbInstance);
-  seedDefaultAthletes(dbInstance);
-
-  return dbInstance;
+  return poolInstance;
 }
 
-function initSchema(db: Database.Database): void {
-  db.exec(`
+export async function initDatabase(): Promise<void> {
+  const pool = getDatabasePool();
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS athletes (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -87,76 +85,73 @@ function initSchema(db: Database.Database): void {
       intervals_api_key TEXT,
       notify_time TEXT DEFAULT '06:30',
       active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS races (
       id TEXT PRIMARY KEY,
-      athlete_id TEXT NOT NULL,
+      athlete_id TEXT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       race_date TEXT NOT NULL,
-      distance_km REAL,
+      distance_km NUMERIC,
       target_time TEXT,
-      priority TEXT CHECK (priority IN ('P1', 'P2', 'P3')),
-      FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+      priority TEXT CHECK (priority IN ('P1', 'P2', 'P3'))
     );
 
     CREATE TABLE IF NOT EXISTS scheduled_workouts (
       id TEXT PRIMARY KEY,
-      athlete_id TEXT NOT NULL,
+      athlete_id TEXT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
       date TEXT NOT NULL,
       focus TEXT,
-      target_km REAL,
+      target_km NUMERIC,
       road_prescription TEXT,
       treadmill_prescription TEXT,
       strength_work TEXT,
       bike_work TEXT,
       clinical_notes TEXT,
-      whatsapp_sent INTEGER DEFAULT 0,
-      FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+      whatsapp_sent INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS completed_activities (
       id TEXT PRIMARY KEY,
-      athlete_id TEXT NOT NULL,
+      athlete_id TEXT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
       date TEXT NOT NULL,
       name TEXT,
       type TEXT,
-      distance_meters REAL,
+      distance_meters NUMERIC,
       moving_time_seconds INTEGER,
-      avg_hr REAL,
-      avg_pace_sec_km REAL,
+      avg_hr NUMERIC,
+      avg_pace_sec_km NUMERIC,
       rpe INTEGER,
-      load REAL,
-      FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+      load NUMERIC
     );
 
     CREATE INDEX IF NOT EXISTS idx_scheduled_athlete_date ON scheduled_workouts(athlete_id, date);
     CREATE INDEX IF NOT EXISTS idx_completed_athlete_date ON completed_activities(athlete_id, date);
   `);
-}
 
-function seedDefaultAthletes(db: Database.Database): void {
-  const insertStmt = db.prepare(`
-    INSERT INTO athletes (id, name, whatsapp_number, intervals_athlete_id, intervals_api_key, notify_time, active)
-    VALUES (@id, @name, @whatsapp_number, @intervals_athlete_id, @intervals_api_key, @notify_time, 1)
-    ON CONFLICT(id) DO UPDATE SET
-      name = excluded.name,
-      whatsapp_number = excluded.whatsapp_number,
-      intervals_athlete_id = COALESCE(NULLIF(excluded.intervals_athlete_id, ''), athletes.intervals_athlete_id),
-      intervals_api_key = COALESCE(NULLIF(excluded.intervals_api_key, ''), athletes.intervals_api_key)
-  `);
-
+  // Sementes iniciais dos atletas
   for (const a of config.initialAthletes) {
     if (a.id && a.whatsappNumber) {
-      insertStmt.run({
-        id: a.id,
-        name: a.name,
-        whatsapp_number: a.whatsappNumber,
-        intervals_athlete_id: a.intervalsAthleteId || null,
-        intervals_api_key: a.intervalsApiKey || null,
-        notify_time: a.notifyTime || '06:30',
-      });
+      await pool.query(
+        `
+        INSERT INTO athletes (id, name, whatsapp_number, intervals_athlete_id, intervals_api_key, notify_time, active)
+        VALUES ($1, $2, $3, $4, $5, $6, 1)
+        ON CONFLICT(id) DO UPDATE SET
+          name = EXCLUDED.name,
+          whatsapp_number = EXCLUDED.whatsapp_number,
+          intervals_athlete_id = COALESCE(NULLIF(EXCLUDED.intervals_athlete_id, ''), athletes.intervals_athlete_id),
+          intervals_api_key = COALESCE(NULLIF(EXCLUDED.intervals_api_key, ''), athletes.intervals_api_key)
+        `,
+        [
+          a.id,
+          a.name,
+          a.whatsappNumber,
+          a.intervalsAthleteId || null,
+          a.intervalsApiKey || null,
+          a.notifyTime || '06:30',
+        ]
+      );
     }
   }
 }

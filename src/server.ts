@@ -19,9 +19,9 @@ export function createServer(): express.Express {
   // --- API Endpoints ---
 
   // Listar atletas
-  app.get('/api/athletes', (req: Request, res: Response) => {
+  app.get('/api/athletes', async (req: Request, res: Response) => {
     try {
-      const athletes = athleteManager.getAllAthletes(false);
+      const athletes = await athleteManager.getAllAthletes(false);
       res.json(athletes);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -29,10 +29,10 @@ export function createServer(): express.Express {
   });
 
   // Obter detalhes de um atleta
-  app.get('/api/athletes/:id', (req: Request, res: Response) => {
+  app.get('/api/athletes/:id', async (req: Request, res: Response) => {
     try {
       const athleteId = String(req.params.id);
-      const athlete = athleteManager.getAthleteById(athleteId);
+      const athlete = await athleteManager.getAthleteById(athleteId);
       if (!athlete) {
         return res.status(404).json({ error: 'Atleta não encontrado' });
       }
@@ -43,13 +43,13 @@ export function createServer(): express.Express {
   });
 
   // Obter treino do dia e atividades concluídas para um atleta
-  app.get('/api/athletes/:id/today', (req: Request, res: Response) => {
+  app.get('/api/athletes/:id/today', async (req: Request, res: Response) => {
     try {
       const athleteId = String(req.params.id);
       const date = typeof req.query.date === 'string' ? req.query.date : getLocalDateString();
 
-      const workouts = athleteManager.getScheduledWorkouts(athleteId, date);
-      const activities = athleteManager.getCompletedActivities(athleteId, date);
+      const workouts = await athleteManager.getScheduledWorkouts(athleteId, date);
+      const activities = await athleteManager.getCompletedActivities(athleteId, date);
 
       res.json({
         date,
@@ -63,20 +63,19 @@ export function createServer(): express.Express {
   });
 
   // Obter visão semanal de treinos (últimos 7 dias ou semana atual)
-  app.get('/api/athletes/:id/week', (req: Request, res: Response) => {
+  app.get('/api/athletes/:id/week', async (req: Request, res: Response) => {
     try {
       const athleteId = String(req.params.id);
       const centerDate = new Date();
 
-      // Gerar os 7 dias da semana (Segunda a Domingo ou últimos 7 dias)
       const weekData = [];
       for (let i = -3; i <= 3; i++) {
         const d = new Date(centerDate);
         d.setDate(d.getDate() + i);
         const dateStr = getLocalDateString(d);
 
-        const workouts = athleteManager.getScheduledWorkouts(athleteId, dateStr);
-        const activities = athleteManager.getCompletedActivities(athleteId, dateStr);
+        const workouts = await athleteManager.getScheduledWorkouts(athleteId, dateStr);
+        const activities = await athleteManager.getCompletedActivities(athleteId, dateStr);
 
         weekData.push({
           date: dateStr,
@@ -95,7 +94,7 @@ export function createServer(): express.Express {
   });
 
   // Criar ou atualizar treino agendado
-  app.post('/api/workouts', (req: Request, res: Response) => {
+  app.post('/api/workouts', async (req: Request, res: Response) => {
     try {
       const data = req.body;
       if (!data.athlete_id || !data.date) {
@@ -117,7 +116,7 @@ export function createServer(): express.Express {
         whatsapp_sent: data.whatsapp_sent ?? 0,
       };
 
-      athleteManager.addScheduledWorkout(workout);
+      await athleteManager.addScheduledWorkout(workout);
       res.status(201).json(workout);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

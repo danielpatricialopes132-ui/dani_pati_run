@@ -3,6 +3,7 @@ import { athleteManager } from './services/athleteManager';
 import { runDailyDispatcher, getLocalDateString } from './jobs/dailyDispatcher';
 import { runIntervalsSync } from './jobs/intervalsSync';
 import { evolutionApi } from './services/evolutionApi';
+import { initDatabase } from './database';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -15,7 +16,7 @@ function question(query: string): Promise<string> {
 
 async function listAthletes() {
   console.log('\n================== ATLETAS CADASTRADOS ==================');
-  const athletes = athleteManager.getAllAthletes(false);
+  const athletes = await athleteManager.getAllAthletes(false);
   if (athletes.length === 0) {
     console.log('Nenhum atleta cadastrado.');
   } else {
@@ -41,7 +42,7 @@ async function createOrUpdateAthlete() {
     return;
   }
 
-  const existing = athleteManager.getAthleteById(id);
+  const existing = await athleteManager.getAthleteById(id);
   if (existing) {
     console.log(`\nAtleta existente encontrado: [${existing.name}]`);
     console.log('Pressione ENTER sem digitar nada para manter o valor atual.');
@@ -54,7 +55,7 @@ async function createOrUpdateAthlete() {
   const notifyTime = await question(`Horário Lembrete (HH:MM) [${existing?.notify_time || '06:30'}]: `);
   const activeInput = await question(`Ativo? (1 = Sim, 0 = Não) [${existing ? existing.active : 1}]: `);
 
-  const updated = athleteManager.upsertAthlete({
+  const updated = await athleteManager.upsertAthlete({
     id,
     name: name.trim() || (existing ? existing.name : id),
     whatsapp_number: whatsapp.trim() || (existing ? existing.whatsapp_number : ''),
@@ -70,7 +71,7 @@ async function createOrUpdateAthlete() {
 
 async function addWorkoutManually() {
   console.log('\n================== AGENDAR NOVO TREINO ==================');
-  const athletes = athleteManager.getAllAthletes(true);
+  const athletes = await athleteManager.getAllAthletes(true);
   if (athletes.length === 0) {
     console.log('Nenhum atleta ativo cadastrado.');
     return;
@@ -81,7 +82,7 @@ async function addWorkoutManually() {
 
   const sel = await question('Escolha o número ou digite o ID: ');
   const athlete =
-    athletes[parseInt(sel, 10) - 1] || athleteManager.getAthleteById(sel.trim().toLowerCase());
+    athletes[parseInt(sel, 10) - 1] || (await athleteManager.getAthleteById(sel.trim().toLowerCase()));
 
   if (!athlete) {
     console.log('Atleta inválido.');
@@ -102,7 +103,7 @@ async function addWorkoutManually() {
 
   const workoutId = `wk_${athlete.id}_${date}_${Date.now()}`;
 
-  athleteManager.addScheduledWorkout({
+  await athleteManager.addScheduledWorkout({
     id: workoutId,
     athlete_id: athlete.id,
     date,
@@ -150,6 +151,7 @@ async function testJobsManually() {
 
 async function main() {
   console.log('\n🏃‍♂️ BEM-VINDO AO WORKOUT-CONTROLLER SETUP CLI 🏃‍♀️');
+  await initDatabase();
 
   let running = true;
   while (running) {

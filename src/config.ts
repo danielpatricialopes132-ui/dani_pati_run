@@ -4,7 +4,7 @@ dotenv.config();
 export interface Config {
   port: number;
   nodeEnv: string;
-  databasePath: string;
+  databaseUrl: string;
   evolution: {
     baseUrl: string;
     instanceName: string;
@@ -25,10 +25,13 @@ const formatBaseUrl = (url?: string): string => {
   return url.replace(/[\[\]]/g, '').trim().replace(/\/+$/, '');
 };
 
+const defaultDbUrl =
+  'postgresql://postgres.kstgsyvjmgglqpbdtdup:A3p3xKLMgsZXgMsj@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require';
+
 export const config: Config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  databasePath: process.env.DATABASE_PATH || 'workouts.db',
+  databaseUrl: process.env.DATABASE_URL || defaultDbUrl,
   evolution: {
     baseUrl: formatBaseUrl(process.env.EVOLUTION_BASE_URL || process.env.EVOLUTION_API_URL),
     instanceName: process.env.EVOLUTION_INSTANCE_NAME || 'ecostone',

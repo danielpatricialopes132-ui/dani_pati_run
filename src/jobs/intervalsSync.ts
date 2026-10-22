@@ -49,17 +49,17 @@ export function formatReconciliationMessage(
     parts.push(`Identificamos *${activities.length}* atividade(s) concluída(s) hoje:\n`);
 
     activities.forEach((act, index) => {
-      const distKm = act.distance_meters ? (act.distance_meters / 1000).toFixed(2) : '0.00';
-      const paceFormatted = formatPace(act.avg_pace_sec_km);
-      const durationFormatted = formatDuration(act.moving_time_seconds);
+      const distKm = act.distance_meters ? (Number(act.distance_meters) / 1000).toFixed(2) : '0.00';
+      const paceFormatted = formatPace(act.avg_pace_sec_km ? Number(act.avg_pace_sec_km) : null);
+      const durationFormatted = formatDuration(act.moving_time_seconds ? Number(act.moving_time_seconds) : null);
 
       parts.push(`*#${index + 1} - ${act.name || act.type || 'Atividade'}*`);
       parts.push(`• 🏃 Tipo: ${act.type || 'Geral'}`);
       parts.push(`• 📏 Distância: *${distKm} km*`);
       parts.push(`• ⏱️ Tempo: *${durationFormatted}*`);
       parts.push(`• ⚡ Pace Médio: *${paceFormatted}*`);
-      if (act.avg_hr) parts.push(`• ❤️ FC Média: *${Math.round(act.avg_hr)} bpm*`);
-      if (act.load) parts.push(`• 📊 Carga Interna (Load): *${Math.round(act.load)}*`);
+      if (act.avg_hr) parts.push(`• ❤️ FC Média: *${Math.round(Number(act.avg_hr))} bpm*`);
+      if (act.load) parts.push(`• 📊 Carga Interna (Load): *${Math.round(Number(act.load))}*`);
       if (act.rpe) parts.push(`• 🧠 PSE (RPE): *${act.rpe}/10*`);
       parts.push(``);
     });
@@ -78,7 +78,7 @@ export async function runIntervalsSync(targetDate?: string): Promise<void> {
   const dateStr = targetDate || getLocalDateString();
   console.log(`[IntervalsSync] Iniciando reconciliação noturna para ${dateStr}...`);
 
-  const athletes = athleteManager.getAllAthletes(true);
+  const athletes = await athleteManager.getAllAthletes(true);
 
   for (const athlete of athletes) {
     if (!athlete.intervals_athlete_id || !athlete.intervals_api_key) {
@@ -98,8 +98,6 @@ export async function runIntervalsSync(targetDate?: string): Promise<void> {
       const savedRecords: CompletedActivityRecord[] = [];
 
       for (const act of apiActivities) {
-        // Cálculo do pace em segundos por km:
-        // average_speed em m/s => sec/km = 1000 / average_speed
         let paceSecKm: number | null = null;
         if (act.average_speed && act.average_speed > 0) {
           paceSecKm = 1000 / act.average_speed;
@@ -121,13 +119,12 @@ export async function runIntervalsSync(targetDate?: string): Promise<void> {
           load: act.icu_training_load ?? null,
         };
 
-        athleteManager.saveCompletedActivity(record);
+        await athleteManager.saveCompletedActivity(record);
         savedRecords.push(record);
       }
 
       console.log(`[IntervalsSync] ${savedRecords.length} atividade(s) processada(s) para ${athlete.name}.`);
 
-      // Envia resumo no WhatsApp se houver atividades concluídas
       if (savedRecords.length > 0 && athlete.whatsapp_number) {
         console.log(`[IntervalsSync] Enviando resumo de treinos para ${athlete.name} no WhatsApp...`);
         const message = formatReconciliationMessage(athlete.name, dateStr, savedRecords);

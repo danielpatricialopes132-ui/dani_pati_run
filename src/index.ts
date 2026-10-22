@@ -3,7 +3,7 @@ import { athleteManager } from './services/athleteManager';
 import { runDailyDispatcher } from './jobs/dailyDispatcher';
 import { runIntervalsSync } from './jobs/intervalsSync';
 import { config } from './config';
-import { getDatabase } from './database';
+import { initDatabase } from './database';
 import { createServer } from './server';
 
 function startScheduler() {
@@ -28,14 +28,18 @@ function startScheduler() {
 
     if (currentTime === '06:30') return;
 
-    const athletes = athleteManager.getAllAthletes(true);
-    const customAthletes = athletes.filter(
-      (a) => a.notify_time && a.notify_time === currentTime && a.notify_time !== '06:30'
-    );
+    try {
+      const athletes = await athleteManager.getAllAthletes(true);
+      const customAthletes = athletes.filter(
+        (a) => a.notify_time && a.notify_time === currentTime && a.notify_time !== '06:30'
+      );
 
-    if (customAthletes.length > 0) {
-      console.log(`[Scheduler] Executando lembrete em horário personalizado (${currentTime}) para: ${customAthletes.map(a => a.name).join(', ')}`);
-      await runDailyDispatcher();
+      if (customAthletes.length > 0) {
+        console.log(`[Scheduler] Executando lembrete em horário personalizado (${currentTime}) para: ${customAthletes.map(a => a.name).join(', ')}`);
+        await runDailyDispatcher();
+      }
+    } catch (err: any) {
+      console.error(`[Scheduler] Erro no scheduler minuto: ${err.message}`);
     }
   });
 
@@ -59,18 +63,22 @@ async function main() {
   console.log('🏃 workout-controller - Sistema de Treinos, PWA & Sync');
   console.log('========================================================');
   console.log(`Ambiente: ${config.nodeEnv}`);
-  console.log(`Banco de dados: ${config.databasePath}`);
   console.log(`Evolution API: ${config.evolution.baseUrl} (Instância: ${config.evolution.instanceName})`);
 
-  // Inicializa o banco de dados e sementes iniciais
-  const db = getDatabase();
-  console.log('[Database] Conexão SQLite estabelecida com sucesso.');
+  // Inicializa o banco de dados no Supabase e sementes iniciais
+  try {
+    console.log('[Database] Conectando ao PostgreSQL do Supabase...');
+    await initDatabase();
+    console.log('[Database] ✅ Conexão e tabelas Supabase verificadas com sucesso.');
 
-  const athletes = athleteManager.getAllAthletes(false);
-  console.log(`[Database] ${athletes.length} atleta(s) registrado(s):`);
-  athletes.forEach((a) => {
-    console.log(`  - ${a.name} (${a.id}) | WhatsApp: ${a.whatsapp_number} | Intervals ID: ${a.intervals_athlete_id || 'N/A'}`);
-  });
+    const athletes = await athleteManager.getAllAthletes(false);
+    console.log(`[Database] ${athletes.length} atleta(s) registrado(s):`);
+    athletes.forEach((a) => {
+      console.log(`  - ${a.name} (${a.id}) | WhatsApp: ${a.whatsapp_number} | Intervals ID: ${a.intervals_athlete_id || 'N/A'}`);
+    });
+  } catch (dbErr: any) {
+    console.error('[Database] ⚠️ Erro ao conectar ao banco de dados Supabase:', dbErr.message);
+  }
 
   // Inicializa os jobs em background
   startScheduler();
@@ -82,11 +90,9 @@ async function main() {
     console.log(`[PWA Server] 📱 Abra no navegador ou instale no celular (Chrome / Safari PWA)`);
   });
 
-  // Encerramento suave
   const gracefulShutdown = () => {
     console.log('\n[Daemon] Encerrando workout-controller suavemente...');
     server.close(() => {
-      db.close();
       process.exit(0);
     });
   };

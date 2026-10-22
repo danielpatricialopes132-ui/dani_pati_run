@@ -68,7 +68,7 @@ export async function runDailyDispatcher(targetDate?: string): Promise<void> {
   const dateStr = targetDate || getLocalDateString();
   console.log(`[DailyDispatcher] Iniciando verificação de treinos para ${dateStr}...`);
 
-  const pending = athleteManager.getPendingScheduledWorkoutsForDate(dateStr);
+  const pending = await athleteManager.getPendingScheduledWorkoutsForDate(dateStr);
 
   if (pending.length === 0) {
     console.log(`[DailyDispatcher] Nenhum treino pendente de envio para ${dateStr}.`);
@@ -85,7 +85,7 @@ export async function runDailyDispatcher(targetDate?: string): Promise<void> {
       const success = await evolutionApi.sendTextMessage(item.whatsapp_number, message);
 
       if (success) {
-        athleteManager.markWorkoutAsSent(item.id);
+        await athleteManager.markWorkoutAsSent(item.id);
         console.log(`[DailyDispatcher] ✅ Treino ID ${item.id} enviado com sucesso para ${item.athlete_name}.`);
       } else {
         console.error(`[DailyDispatcher] ❌ Falha no envio do treino ID ${item.id} para ${item.athlete_name}.`);
