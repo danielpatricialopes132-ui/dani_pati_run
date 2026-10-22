@@ -30,7 +30,7 @@ export const config: Config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   databasePath: process.env.DATABASE_PATH || 'workouts.db',
   evolution: {
-    baseUrl: formatBaseUrl(process.env.EVOLUTION_BASE_URL),
+    baseUrl: formatBaseUrl(process.env.EVOLUTION_BASE_URL || process.env.EVOLUTION_API_URL),
     instanceName: process.env.EVOLUTION_INSTANCE_NAME || 'ecostone',
     apiKey: process.env.EVOLUTION_API_KEY || '',
   },
