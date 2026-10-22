@@ -38,6 +38,7 @@ body[data-theme="daniel"] .athlete-tab.active {
 body[data-theme="daniel"] .brand-title {
   background: linear-gradient(135deg, #ff4d6d, #c9184a);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -64,6 +65,7 @@ body[data-theme="patricia"] .athlete-tab.active {
 body[data-theme="patricia"] .brand-title {
   background: linear-gradient(135deg, #38bdf8, #bae6fd);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -90,6 +92,7 @@ body[data-theme="casal"] .athlete-tab.active {
 body[data-theme="casal"] .brand-title {
   background: linear-gradient(135deg, #fbbf24, #f472b6);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
