@@ -2,25 +2,29 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV PORT=3000
 
-# Instala ferramentas essenciais e build-essential para compilação nativa estável do better-sqlite3
+# Pacotes essenciais para compilação nativa C++ do better-sqlite3 e init process
 RUN apt-get update && apt-get install -y python3 make g++ dumb-init && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instala e compila dependências diretamente no ambiente de execução final
+# Instala todas as dependências (incluindo devDependencies como typescript/tsc)
+ENV NODE_ENV=development
 RUN npm install
 
 COPY src/ ./src/
 COPY public/ ./public/
 
-# Compila o TypeScript
+# Compila o TypeScript usando tsc
 RUN npm run build
 
-# Cria diretório padrão para persistência do banco SQLite
+# Remove dependências de desenvolvimento após a compilação
+ENV NODE_ENV=production
+RUN npm prune --production
+
+# Diretório padrão para persistência do banco SQLite
 RUN mkdir -p /app/data
 ENV DATABASE_PATH=/app/data/workouts.db
 
