@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Dani & Pati Run | Treinos & Reconciliação</title>
+  <title>Dani & Pati Run | Treinos, Métricas & Dashboard</title>
 
   <!-- PWA & Mobile Metas -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" content="#07090e">
   
   <!-- iOS Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,75 +15,194 @@
   <meta name="apple-mobile-web-app-title" content="DaniPatiRun">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
+  <!-- Chart.js para Gráficos Visuais -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <!-- Estilos -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body data-theme="daniel">
 
-  <!-- Header Fixo com Seletor de Atleta -->
+  <!-- Header Fixo com Seletor de Atleta / Casal -->
   <header>
     <div class="header-container">
       <div class="brand">
-        <span class="brand-icon">⚡</span>
-        <span class="brand-title">DANI & PATI RUN</span>
+        <span class="brand-icon" id="brand-badge">🔴⚫</span>
+        <span class="brand-title" id="brand-title">DANIEL RUN (FLA)</span>
       </div>
 
       <div class="athlete-tabs" id="athlete-tabs">
-        <button class="athlete-tab active" data-id="daniel">Daniel</button>
-        <button class="athlete-tab" data-id="patricia">Patrícia</button>
+        <button class="athlete-tab active" data-id="daniel">🔴⚫ Daniel</button>
+        <button class="athlete-tab" data-id="patricia">🔵⚪ Patrícia</button>
+        <button class="athlete-tab" data-id="casal">💛 Casal</button>
       </div>
     </div>
   </header>
 
+  <!-- Navegação de Visualização: Treinos vs Hub de Relatórios -->
+  <div class="sub-nav">
+    <button class="nav-link-btn active" id="tab-today-view">
+      <span>🏃‍♂️</span> Treino & Semana
+    </button>
+    <button class="nav-link-btn" id="tab-reports-view">
+      <span>📊</span> Hub de Relatórios & Métricas
+    </button>
+  </div>
+
   <main>
-    <!-- Card de Ações Rápidas (Disparar WhatsApp / Sincronizar) -->
+    <!-- Card de Ações Rápidas -->
     <div class="action-buttons">
-      <button class="btn btn-primary" id="btn-sync-intervals">
+      <button class="btn btn-theme" id="btn-sync-intervals">
         <span>🔄</span> Sincronizar Intervals.icu
       </button>
       <button class="btn btn-secondary" id="btn-send-whatsapp">
-        <span>📲</span> Enviar WhatsApp
+        <span>📲</span> Disparar WhatsApp
       </button>
     </div>
 
-    <!-- Visão Semanal -->
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>📅</span> Visão da Semana
-        </div>
-        <span class="badge badge-today" id="current-date-badge">Hoje</span>
-      </div>
-      <div class="week-grid" id="week-grid">
+    <!-- ==============================================
+         VIEW 1: TREINO DE HOJE & VISÃO SEMANAL
+    ============================================== -->
+    <div id="view-today-container">
+      <!-- KPIs Rápidos do Atleta Atual -->
+      <section class="kpi-grid" id="kpi-grid-today">
         <!-- Renderizado dinamicamente -->
-      </div>
-    </section>
+      </section>
 
-    <!-- Treino Prescrito de Hoje -->
-    <section class="card" id="today-workout-card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>🎯</span> Prescrição de Hoje
+      <!-- Visão Semanal -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📅</span> Visão da Semana
+          </div>
+          <span class="badge badge-theme" id="current-date-badge">Hoje</span>
         </div>
-        <span class="badge" id="workout-status-badge">Carregando...</span>
-      </div>
-
-      <div id="workout-content">
-        <!-- Renderizado dinamicamente -->
-      </div>
-    </section>
-
-    <!-- Atividades Concluídas Hoje -->
-    <section class="card" id="completed-activities-card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>🏁</span> Realizado Hoje (Intervals.icu)
+        <div class="week-grid" id="week-grid">
+          <!-- Renderizado dinamicamente -->
         </div>
-      </div>
-      <div id="activities-content">
-        <!-- Renderizado dinamicamente -->
-      </div>
-    </section>
+      </section>
+
+      <!-- Prescrição de Hoje -->
+      <section class="card" id="today-workout-card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🎯</span> Prescrição de Hoje
+          </div>
+          <span class="badge" id="workout-status-badge">Carregando...</span>
+        </div>
+        <div id="workout-content">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </section>
+
+      <!-- Atividades Concluídas Hoje -->
+      <section class="card" id="completed-activities-card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🏁</span> Realizado Hoje (Intervals.icu)
+          </div>
+        </div>
+        <div id="activities-content">
+          <!-- Renderizado dinamicamente -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ==============================================
+         VIEW 2: HUB DE RELATÓRIOS, GRÁFICOS & TABELAS
+    ============================================== -->
+    <div id="view-reports-container" style="display: none; display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Card Comparativo Casal (Exibido no modo Casal ou no topo) -->
+      <section class="card" id="couple-summary-card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>❤️</span> Desafio & Volume Acumulado Casal
+          </div>
+          <span class="badge badge-theme">2026/2027</span>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">
+          Distribuição de Quilometragem Total Concluída
+        </div>
+        
+        <div class="couple-meter">
+          <div class="meter-daniel" id="meter-daniel" style="width: 50%;"></div>
+          <div class="meter-patricia" id="meter-patricia" style="width: 50%;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 6px;">
+          <span style="color: #e11d48;" id="stat-daniel-km">🔴 Daniel: 0 km</span>
+          <span style="color: #0284c7;" id="stat-patricia-km">🔵 Patrícia: 0 km</span>
+        </div>
+      </section>
+
+      <!-- Gráfico de Comparação de Volume -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📈</span> Volume Planejado vs Executado (KM)
+          </div>
+        </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="volumeChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Tabela de Últimas Atividades Realizadas -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📋</span> Histórico de Atividades Realizadas
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Atleta</th>
+                <th>Treino</th>
+                <th>KM</th>
+                <th>Pace</th>
+                <th>Tempo</th>
+                <th>FC / Load</th>
+              </tr>
+            </thead>
+            <tbody id="table-activities-body">
+              <tr><td colspan="7" style="text-align: center; color: #64748b;">Nenhuma atividade recente.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tabela de Próximos Treinos Planejados -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🗓️</span> Cronograma de Próximos Treinos
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Atleta</th>
+                <th>Foco</th>
+                <th>KM Alvo</th>
+                <th>Prescrição Principal</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="table-workouts-body">
+              <tr><td colspan="6" style="text-align: center; color: #64748b;">Nenhum treino programado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
   </main>
 
   <script src="/js/app.js"></script>

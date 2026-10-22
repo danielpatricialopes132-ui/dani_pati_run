@@ -93,6 +93,89 @@ export function createServer(): express.Express {
     }
   });
 
+  // Obter estatísticas consolidadas para o dashboard (individual e casal)
+  app.get('/api/dashboard-stats', async (req: Request, res: Response) => {
+    try {
+      const pool = athleteManager['pool'];
+
+      // Estatísticas gerais Daniel
+      const danielRes = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT c.id) as total_activities,
+          COALESCE(SUM(c.distance_meters), 0) / 1000.0 as total_km_done,
+          COALESCE(SUM(c.moving_time_seconds), 0) as total_time_seconds,
+          COALESCE(AVG(NULLIF(c.avg_hr, 0)), 0) as avg_hr,
+          COALESCE(SUM(c.load), 0) as total_load,
+          COALESCE(AVG(NULLIF(c.avg_pace_sec_km, 0)), 0) as avg_pace_sec
+        FROM completed_activities c
+        WHERE c.athlete_id = 'daniel'
+      `);
+
+      const danielPlannedRes = await pool.query(`
+        SELECT 
+          COUNT(id) as total_planned_workouts,
+          COALESCE(SUM(target_km), 0) as total_km_planned
+        FROM scheduled_workouts
+        WHERE athlete_id = 'daniel'
+      `);
+
+      // Estatísticas gerais Patrícia
+      const patriciaRes = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT c.id) as total_activities,
+          COALESCE(SUM(c.distance_meters), 0) / 1000.0 as total_km_done,
+          COALESCE(SUM(c.moving_time_seconds), 0) as total_time_seconds,
+          COALESCE(AVG(NULLIF(c.avg_hr, 0)), 0) as avg_hr,
+          COALESCE(SUM(c.load), 0) as total_load,
+          COALESCE(AVG(NULLIF(c.avg_pace_sec_km, 0)), 0) as avg_pace_sec
+        FROM completed_activities c
+        WHERE c.athlete_id = 'patricia'
+      `);
+
+      const patriciaPlannedRes = await pool.query(`
+        SELECT 
+          COUNT(id) as total_planned_workouts,
+          COALESCE(SUM(target_km), 0) as total_km_planned
+        FROM scheduled_workouts
+        WHERE athlete_id = 'patricia'
+      `);
+
+      // Últimas 15 atividades recentes para tabela/relatório
+      const recentActivities = await pool.query(`
+        SELECT c.*, a.name as athlete_name
+        FROM completed_activities c
+        JOIN athletes a ON c.athlete_id = a.id
+        ORDER BY c.date DESC, c.id DESC
+        LIMIT 20
+      `);
+
+      // Próximos 15 treinos planejados para relatório
+      const upcomingWorkouts = await pool.query(`
+        SELECT w.*, a.name as athlete_name
+        FROM scheduled_workouts w
+        JOIN athletes a ON w.athlete_id = a.id
+        WHERE w.date >= CURRENT_DATE - INTERVAL '1 day'
+        ORDER BY w.date ASC, w.athlete_id ASC
+        LIMIT 20
+      `);
+
+      res.json({
+        daniel: {
+          done: danielRes.rows[0],
+          planned: danielPlannedRes.rows[0],
+        },
+        patricia: {
+          done: patriciaRes.rows[0],
+          planned: patriciaPlannedRes.rows[0],
+        },
+        recentActivities: recentActivities.rows,
+        upcomingWorkouts: upcomingWorkouts.rows,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Criar ou atualizar treino agendado
   app.post('/api/workouts', async (req: Request, res: Response) => {
     try {
